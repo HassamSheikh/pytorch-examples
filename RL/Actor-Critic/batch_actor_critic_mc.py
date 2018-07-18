@@ -80,7 +80,7 @@ def train():
         state_value = critic(state_tensor)
         next_state_tensor = torch.from_numpy(next_state).float()
         next_state_value = critic(next_state_tensor)
-        advantage = reward + next_state_value.item() - state_value.item()
+        advantage = reward + 0.99*next_state_value.item() - state_value.item()
         policy_losses.append(log_prob * advantage)
     policy_losses = torch.stack(policy_losses).sum()
     actor_optimizer.zero_grad()
