@@ -1,4 +1,4 @@
-""" Implementation Batch Actor-Critic Method as taught in CS 294. The Value Function is fitted using Bootstrap
+""" Implementation Online Actor-Critic Method as taught in CS 294. The Value Function is fitted using Bootstrap
 """
 
 #Note: It is probably the most inefficient implementation of the AC method
