@@ -17,7 +17,6 @@ from collections import namedtuple
 env = gym.make('CartPole-v0')
 
 
-
 class Actor(nn.Module):
     def __init__(self):
         super(Actor, self).__init__()
@@ -44,7 +43,7 @@ class Critic(nn.Module):
         return out
 
 actor = Actor()
-actor_optimizer = Adam(actor.parameters(), lr=1e-3)
+actor_optimizer = Adam(actor.parameters(), lr=1e-4)
 
 critic = Critic()
 critic_optimizer = Adam(critic.parameters(), lr=10e-5)
@@ -98,11 +97,11 @@ def main():
             actor.rewards.append(reward)
             actor.states.append(state)
             actor.next_states.append(next_state)
+            train()
             if done:
                 break
             state = next_state
         running_reward = running_reward * 0.99 + t * 0.01
-        train()
         if i_episode % 10 == 0:
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
