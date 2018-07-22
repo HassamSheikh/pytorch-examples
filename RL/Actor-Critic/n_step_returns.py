@@ -15,8 +15,9 @@ import numpy as np
 from collections import namedtuple
 
 env = gym.make('CartPole-v0')
-env.seed(1)
-torch.manual_seed(1)
+# env.seed(1)
+# torch.manual_seed(1)
+n=2
 
 
 class Actor(nn.Module):
@@ -27,6 +28,7 @@ class Actor(nn.Module):
         self.states = []
         self.next_states = []
         self.rewards = []
+        self.done=[]
 
     def forward(self, state):
         return self.network(state)
@@ -44,11 +46,10 @@ class Critic(nn.Module):
         return out
 
 actor = Actor()
-actor_optimizer = Adam(actor.parameters(), lr=1e-3)
+actor_optimizer = Adam(actor.parameters(), lr=3e-4)
 
 critic = Critic()
-critic_optimizer = Adam(critic.parameters(), lr=1e-3)
-
+critic_optimizer = Adam(critic.parameters(), lr=3e-4)
 
 def select_action(state):
      state_tensor = torch.from_numpy(state).float()
@@ -75,16 +76,42 @@ def train():
     value_losses.backward()
     critic_optimizer.step()
 
-    for state, next_state, log_prob, reward in zip(actor.states, actor.next_states, actor.log_probs, target_v_values):
+    for i, (state, log_prob, done) in enumerate(zip(actor.states, actor.log_probs, actor.done)):
         state_tensor = torch.from_numpy(state).float()
         state_value = critic(state_tensor)
-        advantage = reward - state_value.item()
+        n_step = n_step_return(actor.rewards, i, n)
+        discounted_next_state_value = 0
+        if len(actor.next_states) > i + n:
+            next_state_tensor = torch.from_numpy(actor.next_states[i+n]).float()
+            discounted_next_state_value = (0.99**n)*critic(next_state_tensor).item()
+        advantage = n_step - state_value.item() + discounted_next_state_value
         policy_losses.append(log_prob * advantage)
     policy_losses = torch.stack(policy_losses).sum()
     actor_optimizer.zero_grad()
     policy_losses.backward()
     actor_optimizer.step()
     actor.states, actor.next_states, actor.log_probs, actor.rewards = [], [], [], []
+
+def n_step_return(reward, i, m):
+    R=0
+    index = 0
+    if i+m-1 > len(reward):
+        index = len(reward)
+    else:
+        index = i + m
+    for r in reward[i:index]:
+        R = r + 0.99 * R
+    return R
+
+    # try:
+    #     for r in reward[i:i+n]:
+    #         R = r + 1 * R
+    #     return R
+    # except:
+    #     for r in reward[i:]:
+    #         R = r + 1 * R
+    #     return R
+
 
 def main():
     running_reward = 10
@@ -96,6 +123,7 @@ def main():
             actor.rewards.append(reward)
             actor.states.append(state)
             actor.next_states.append(next_state)
+            actor.done.append(done)
             if done:
                 break
             state = next_state
